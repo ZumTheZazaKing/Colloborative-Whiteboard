@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -26,32 +27,34 @@ export default function Whiteboard() {
   // Pinch Zoom State
   const lastPinchDistance = useRef<number | null>(null);
 
-  const handleZoom = (delta: number) => {
+  const handleZoom = useCallback((delta: number) => {
     setScale(prev => {
       const next = prev * delta;
       return Math.min(Math.max(next, 0.1), 5); // 10% to 500%
     });
-  };
+  }, []);
 
-  const resetView = () => {
+  const resetView = useCallback(() => {
     setScale(1);
     setOffset({ x: 0, y: 0 });
-  };
+  }, []);
 
-  // Wheel Zoom
+  // Wheel Zoom Effect
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const zoomFactor = 1 - e.deltaY * 0.001;
+      // Use ctrlKey check for pinch-to-zoom simulation or just deltaY for standard mouse wheel
+      const zoomSpeed = e.ctrlKey ? 0.05 : 0.001;
+      const zoomFactor = 1 - e.deltaY * zoomSpeed;
       handleZoom(zoomFactor);
     };
 
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [handleZoom]);
 
   // Pan Logic
   const startPanning = (e: React.MouseEvent) => {
@@ -107,7 +110,7 @@ export default function Whiteboard() {
   }
 
   const zoomPercent = Math.round(scale * 100);
-  const isLocked = zoomPercent !== 100;
+  const isLocked = zoomPercent < 100;
 
   return (
     <div 
@@ -171,7 +174,7 @@ export default function Whiteboard() {
       {/* Locked Status Indicator */}
       {isLocked && (
         <div className="absolute top-20 left-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold uppercase tracking-widest animate-pulse">
-          <Lock className="w-3 h-3" /> Drawing Locked: Reset Zoom to 100%
+          <Lock className="w-3 h-3" /> Drawing Locked: Zoom is below 100%
         </div>
       )}
 

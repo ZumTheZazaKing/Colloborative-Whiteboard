@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -104,7 +105,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     if (stroke.points.length < 2) return;
 
     ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.width;
+    ctx.lineWidth = stroke.width / scale; // Keep stroke width consistent relative to view if desired, or fixed
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -121,13 +122,13 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     if ((e as React.MouseEvent).button === 1) return;
     if ('touches' in e && e.touches.length > 1) return;
     
-    // Check zoom level restriction
+    // Check zoom level restriction: Must be 100% or more
     const currentZoomPercent = Math.round(scale * 100);
-    if (currentZoomPercent !== 100) {
+    if (currentZoomPercent < 100) {
       toast({
         variant: "destructive",
-        title: "Drawing Locked",
-        description: `Drawing is only allowed at 100% zoom. Current zoom: ${currentZoomPercent}%. Please reset zoom to start drawing.`,
+        title: "Drawing Restricted",
+        description: `Drawing is disabled when zoomed out (${currentZoomPercent}%). Please reset zoom to 100% or more.`,
       });
       return;
     }
@@ -140,7 +141,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
     if ('touches' in e && e.touches.length > 1) {
-      endDrawing(); // Stop drawing if a second finger is added
+      endDrawing(); 
       return;
     }
     
@@ -203,7 +204,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     };
   };
 
-  const isLocked = Math.round(scale * 100) !== 100;
+  const isLocked = Math.round(scale * 100) < 100;
 
   return (
     <canvas
