@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Canvas } from './Canvas';
 import { Toolbar } from './Toolbar';
 import { AdminPanel } from './AdminPanel';
@@ -20,6 +21,10 @@ export default function Whiteboard() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const lastMousePos = useRef({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Pinch Zoom State
+  const lastPinchDistance = useRef<number | null>(null);
 
   const handleZoom = (delta: number) => {
     setScale(prev => {
@@ -33,8 +38,24 @@ export default function Whiteboard() {
     setOffset({ x: 0, y: 0 });
   };
 
+  // Wheel Zoom
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = 1 - e.deltaY * 0.001;
+      handleZoom(zoomFactor);
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
+
+  // Pan Logic
   const startPanning = (e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey)) { // Middle click or Alt+Click
+    if (e.button === 1 || (e.button === 0 && e.altKey)) { 
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
     }
@@ -50,6 +71,33 @@ export default function Whiteboard() {
 
   const stopPanning = () => setIsPanning(false);
 
+  // Pinch Zoom Logic
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      lastPinchDistance.current = dist;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastPinchDistance.current !== null) {
+      const dist = Math.hypot(
+        e.touches[0].pageX - e.touches[1].pageX,
+        e.touches[0].pageY - e.touches[1].pageY
+      );
+      const delta = dist / lastPinchDistance.current;
+      handleZoom(delta);
+      lastPinchDistance.current = dist;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    lastPinchDistance.current = null;
+  };
+
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -60,15 +108,19 @@ export default function Whiteboard() {
 
   return (
     <div 
+      ref={containerRef}
       className={`relative h-screen w-full overflow-hidden bg-background ${isPanning ? 'cursor-grabbing' : ''}`}
       onMouseDown={startPanning}
       onMouseMove={pan}
       onMouseUp={stopPanning}
       onMouseLeave={stopPanning}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* Background Grid Pattern - Reacts to zoom and pan */}
+      {/* Background Grid Pattern */}
       <div 
-        className="absolute inset-0 opacity-[0.03] pointer-events-none transition-transform duration-75" 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none" 
         style={{ 
           backgroundImage: 'radial-gradient(circle, #8B77FF 1px, transparent 1px)', 
           backgroundSize: `${40 * scale}px ${40 * scale}px`,

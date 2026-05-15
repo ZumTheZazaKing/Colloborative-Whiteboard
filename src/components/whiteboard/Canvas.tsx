@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -115,7 +116,9 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    if ((e as React.MouseEvent).button === 1) return; // Ignore middle click (panning)
+    // Ignore middle click (panning) or multi-touch (pinching)
+    if ((e as React.MouseEvent).button === 1) return;
+    if ('touches' in e && e.touches.length > 1) return;
     
     setIsDrawing(true);
     const pos = getPos(e);
@@ -124,10 +127,15 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing) return;
+    if ('touches' in e && e.touches.length > 1) {
+      endDrawing(); // Stop drawing if a second finger is added
+      return;
+    }
+    
     const pos = getPos(e);
     const newPoints = [...currentPoints, pos];
     setCurrentPoints(newPoints);
-    redrawAll(); // Redraw with the new local points
+    redrawAll();
   };
 
   const endDrawing = async () => {
@@ -139,7 +147,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     }
 
     const pointsToRefine = currentPoints;
-    setCurrentPoints([]); // Clear local state quickly
+    setCurrentPoints([]);
 
     let pointsToSave = pointsToRefine;
 
@@ -177,7 +185,6 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
     
-    // Convert screen coordinates to world coordinates
     return {
       x: (clientX - rect.left - offset.x) / scale,
       y: (clientY - rect.top - offset.y) / scale
