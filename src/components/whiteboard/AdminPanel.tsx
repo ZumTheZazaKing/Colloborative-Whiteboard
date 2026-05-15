@@ -104,11 +104,11 @@ export function AdminPanel() {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button size="icon" variant="outline" className="glass-panel w-16 h-16 rounded-2xl border-white/10 hover:bg-white/5 group">
-          <Settings2 className="w-6 h-6 text-secondary group-hover:rotate-45 transition-transform" />
+        <Button size="icon" variant="outline" className="glass-panel w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl border-white/10 hover:bg-white/5 group shrink-0">
+          <Settings2 className="w-5 h-5 md:w-6 md:h-6 text-secondary group-hover:rotate-45 transition-transform" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="glass-panel border-l border-white/10 sm:max-w-md">
+      <SheetContent side="right" className="glass-panel border-l border-white/10 w-full sm:max-w-md">
         <SheetHeader className="pb-6">
           <SheetTitle className="text-2xl font-headline flex items-center gap-2">
             <Settings2 className="w-5 h-5 text-secondary" /> Administrative Panel
@@ -120,12 +120,12 @@ export function AdminPanel() {
 
         <div className="flex flex-col gap-6 h-full pb-20">
           <div className="flex items-center justify-between p-4 rounded-xl bg-destructive/5 border border-destructive/10">
-            <div>
-              <p className="font-medium text-destructive">Wipe Canvas</p>
-              <p className="text-xs text-muted-foreground">This action cannot be undone.</p>
+            <div className="mr-4">
+              <p className="font-medium text-destructive text-sm md:text-base">Wipe Canvas</p>
+              <p className="text-[10px] md:text-xs text-muted-foreground">This action cannot be undone.</p>
             </div>
-            <Button variant="destructive" size="sm" onClick={wipeBoard} className="gap-2">
-              <Eraser className="w-4 h-4" /> Wipe Board
+            <Button variant="destructive" size="sm" onClick={wipeBoard} className="gap-2 shrink-0">
+              <Eraser className="w-4 h-4" /> Wipe
             </Button>
           </div>
 
@@ -153,7 +153,7 @@ export function AdminPanel() {
                         variant="ghost" 
                         size="icon" 
                         onClick={() => deleteStroke(stroke.id)}
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 md:opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

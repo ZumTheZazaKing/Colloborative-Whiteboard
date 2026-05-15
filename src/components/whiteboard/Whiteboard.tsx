@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -46,7 +45,6 @@ export default function Whiteboard() {
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      // Use ctrlKey check for pinch-to-zoom simulation or just deltaY for standard mouse wheel
       const zoomSpeed = e.ctrlKey ? 0.05 : 0.001;
       const zoomFactor = 1 - e.deltaY * zoomSpeed;
       handleZoom(zoomFactor);
@@ -146,11 +144,11 @@ export default function Whiteboard() {
       />
 
       {/* Header / Auth */}
-      <div className="absolute top-6 right-6 z-50 flex gap-3">
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 flex gap-3 items-center">
         {isAdmin && (
-          <div className="flex items-center gap-3">
-             <span className="text-sm font-medium text-muted-foreground hidden sm:block">Admin Active: {user?.displayName}</span>
-             <Button variant="outline" size="sm" onClick={logout} className="glass-panel text-xs gap-2">
+          <div className="flex items-center gap-2 md:gap-3 bg-card/40 backdrop-blur-md p-1 md:p-2 rounded-lg border border-white/5">
+             <span className="text-[10px] md:text-sm font-medium text-muted-foreground hidden sm:block">Admin: {user?.displayName}</span>
+             <Button variant="outline" size="sm" onClick={logout} className="glass-panel h-7 md:h-9 text-[10px] md:text-xs gap-1 md:gap-2 px-2 md:px-3">
                <LogOut className="w-3 h-3" /> Logout
              </Button>
           </div>
@@ -158,7 +156,7 @@ export default function Whiteboard() {
       </div>
 
       {/* Floating Tools Sidebar */}
-      <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6">
+      <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:top-1/2 md:-translate-y-1/2 md:bottom-auto z-50 flex flex-row md:flex-col gap-4 md:gap-6 items-end md:items-center">
         <Toolbar 
           brushColor={brushColor} 
           setBrushColor={setBrushColor} 
@@ -173,30 +171,30 @@ export default function Whiteboard() {
 
       {/* Locked Status Indicator */}
       {isLocked && (
-        <div className="absolute top-20 left-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold uppercase tracking-widest animate-pulse">
-          <Lock className="w-3 h-3" /> Drawing Locked: Zoom is below 100%
+        <div className="absolute top-4 left-4 md:top-20 md:left-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[8px] md:text-[10px] font-bold uppercase tracking-widest animate-pulse">
+          <Lock className="w-3 h-3" /> Drawing Locked: Zoom &lt; 100%
         </div>
       )}
 
       {/* Zoom Controls */}
-      <div className="absolute bottom-6 right-6 z-50 flex items-center gap-2 p-1 glass-panel rounded-xl">
+      <div className="absolute bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex items-center gap-1 md:gap-2 p-1 glass-panel rounded-xl">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => handleZoom(0.8)} className="h-9 w-9">
+              <Button variant="ghost" size="icon" onClick={() => handleZoom(0.8)} className="h-8 w-8 md:h-9 md:w-9">
                 <ZoomOut className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Zoom Out</TooltipContent>
           </Tooltip>
 
-          <div className={`px-2 text-xs font-bold min-w-[3.5rem] text-center transition-colors ${isLocked ? 'text-destructive' : 'text-primary'}`}>
+          <div className={`px-1 md:px-2 text-[10px] md:text-xs font-bold min-w-[2.5rem] md:min-w-[3.5rem] text-center transition-colors ${isLocked ? 'text-destructive' : 'text-primary'}`}>
             {zoomPercent}%
           </div>
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={() => handleZoom(1.2)} className="h-9 w-9">
+              <Button variant="ghost" size="icon" onClick={() => handleZoom(1.2)} className="h-8 w-8 md:h-9 md:w-9">
                 <ZoomIn className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -207,7 +205,7 @@ export default function Whiteboard() {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={resetView} className={`h-9 w-9 ${isLocked ? 'text-primary' : 'text-muted-foreground'}`}>
+              <Button variant="ghost" size="icon" onClick={resetView} className={`h-8 w-8 md:h-9 md:w-9 ${isLocked ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Maximize className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
@@ -224,9 +222,9 @@ export default function Whiteboard() {
       </div>
 
       {/* Footer Info */}
-      <div className="absolute bottom-6 left-6 z-50 pointer-events-none">
-        <h1 className="text-xl font-headline font-bold text-primary flex items-center gap-2">
-          WhiteBoard <span className="text-xs font-body font-normal text-muted-foreground px-2 py-0.5 rounded-full border border-primary/20 bg-primary/5">Collaborative</span>
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:top-auto md:bottom-6 md:left-6 z-40 pointer-events-none">
+        <h1 className="text-sm md:text-xl font-headline font-bold text-primary flex items-center gap-2">
+          WhiteBoard <span className="text-[8px] md:text-xs font-body font-normal text-muted-foreground px-2 py-0.5 rounded-full border border-primary/20 bg-primary/5">Collaborative</span>
         </h1>
       </div>
     </div>

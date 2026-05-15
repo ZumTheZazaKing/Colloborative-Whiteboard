@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -33,6 +32,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
   const { toast } = useToast();
+  const lastToastTime = useRef(0);
 
   // Sync with Firestore
   useEffect(() => {
@@ -105,7 +105,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     if (stroke.points.length < 2) return;
 
     ctx.strokeStyle = stroke.color;
-    ctx.lineWidth = stroke.width / scale; // Keep stroke width consistent relative to view if desired, or fixed
+    ctx.lineWidth = stroke.width / scale;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -118,18 +118,20 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    // Ignore middle click (panning) or multi-touch (pinching)
     if ((e as React.MouseEvent).button === 1) return;
     if ('touches' in e && e.touches.length > 1) return;
     
-    // Check zoom level restriction: Must be 100% or more
     const currentZoomPercent = Math.round(scale * 100);
     if (currentZoomPercent < 100) {
-      toast({
-        variant: "destructive",
-        title: "Drawing Restricted",
-        description: `Drawing is disabled when zoomed out (${currentZoomPercent}%). Please reset zoom to 100% or more.`,
-      });
+      const now = Date.now();
+      if (now - lastToastTime.current > 3000) { // 3 second throttle
+        toast({
+          variant: "destructive",
+          title: "Drawing Restricted",
+          description: `Drawing is disabled when zoomed out (${currentZoomPercent}%). Please reset to 100% or more.`,
+        });
+        lastToastTime.current = now;
+      }
       return;
     }
     
