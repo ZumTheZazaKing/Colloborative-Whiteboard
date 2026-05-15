@@ -1,21 +1,28 @@
 
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWhiteboardAuth } from '@/hooks/use-whiteboard-auth';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { KeyRound, ArrowLeft } from 'lucide-react';
+import { KeyRound, ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
 export default function AdminLoginPage() {
-  const { login, isAdmin } = useWhiteboardAuth();
+  const { login, isAdmin, loading } = useWhiteboardAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [passphrase, setPassphrase] = useState('');
+
+  // Move navigation to useEffect to avoid "updating component during render" error
+  useEffect(() => {
+    if (isAdmin && !loading) {
+      router.replace('/');
+    }
+  }, [isAdmin, loading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,10 +42,12 @@ export default function AdminLoginPage() {
     }
   };
 
-  // If already admin, we can just show a link back
-  if (isAdmin) {
-    router.replace('/');
-    return null;
+  if (loading || isAdmin) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
   }
 
   return (
