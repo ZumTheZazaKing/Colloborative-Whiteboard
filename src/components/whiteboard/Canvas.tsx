@@ -21,9 +21,11 @@ interface CanvasProps {
   brushColor: string;
   brushWidth: number;
   aiRefineEnabled: boolean;
+  scale: number;
+  offset: { x: number, y: number };
 }
 
-export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps) {
+export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
@@ -43,17 +45,22 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     return () => unsubscribe();
   }, []);
 
-  // Handle Resize
+  // Handle Resize and Redraw
   useEffect(() => {
     const handleResize = () => {
       if (canvasRef.current) {
         const canvas = canvasRef.current;
-        const { width, height } = canvas.getBoundingClientRect();
+        const rect = canvas.parentElement?.getBoundingClientRect();
+        if (!rect) return;
+        
         const dpr = window.devicePixelRatio || 1;
-        canvas.width = width * dpr;
-        canvas.height = height * dpr;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        
         const ctx = canvas.getContext('2d');
-        if (ctx) ctx.scale(dpr, dpr);
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+        }
         redrawAll();
       }
     };
@@ -61,7 +68,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [strokes]);
+  }, [strokes, scale, offset]);
 
   const redrawAll = () => {
     const canvas = canvasRef.current;
@@ -69,18 +76,30 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Use single frame redraw to prevent flicker
     requestAnimationFrame(() => {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for clear
+      const dpr = window.devicePixelRatio || 1;
+      ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      strokes.forEach(drawStroke);
+      
+      // Apply Viewport Transform
+      ctx.translate(offset.x, offset.y);
+      ctx.scale(scale, scale);
+
+      strokes.forEach(s => drawStroke(ctx, s));
+      
+      // Draw active stroke
+      if (isDrawing && currentPoints.length >= 2) {
+        drawStroke(ctx, { id: 'active', points: currentPoints, color: brushColor, width: brushWidth });
+      }
+      
+      ctx.restore();
     });
   };
 
-  const drawStroke = (stroke: Stroke) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx || stroke.points.length < 2) return;
+  const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
+    if (stroke.points.length < 2) return;
 
     ctx.strokeStyle = stroke.color;
     ctx.lineWidth = stroke.width;
@@ -96,8 +115,8 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    if ((e as React.MouseEvent).button === 1) return; // Ignore middle click (panning)
+    
     setIsDrawing(true);
     const pos = getPos(e);
     setCurrentPoints([pos]);
@@ -108,35 +127,26 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     const pos = getPos(e);
     const newPoints = [...currentPoints, pos];
     setCurrentPoints(newPoints);
-
-    // Local drawing for zero latency
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (ctx && newPoints.length >= 2) {
-      ctx.strokeStyle = brushColor;
-      ctx.lineWidth = brushWidth;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      const last = newPoints[newPoints.length - 2];
-      ctx.beginPath();
-      ctx.moveTo(last.x, last.y);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    }
+    redrawAll(); // Redraw with the new local points
   };
 
   const endDrawing = async () => {
     if (!isDrawing) return;
     setIsDrawing(false);
-    if (currentPoints.length < 2) return;
+    if (currentPoints.length < 2) {
+      setCurrentPoints([]);
+      return;
+    }
 
-    let pointsToSave = currentPoints;
+    const pointsToRefine = currentPoints;
+    setCurrentPoints([]); // Clear local state quickly
+
+    let pointsToSave = pointsToRefine;
 
     if (aiRefineEnabled) {
       try {
         const refined = await refineHandDrawnStrokes({
-          points: currentPoints,
+          points: pointsToRefine,
           color: brushColor,
           width: brushWidth
         });
@@ -158,8 +168,6 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     } catch (err) {
       console.error("Failed to save stroke", err);
     }
-    
-    setCurrentPoints([]);
   };
 
   const getPos = (e: React.MouseEvent | React.TouchEvent): Point => {
@@ -168,9 +176,11 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled }: CanvasProps)
     const rect = canvas.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as React.MouseEvent).clientY;
+    
+    // Convert screen coordinates to world coordinates
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
+      x: (clientX - rect.left - offset.x) / scale,
+      y: (clientY - rect.top - offset.y) / scale
     };
   };
 

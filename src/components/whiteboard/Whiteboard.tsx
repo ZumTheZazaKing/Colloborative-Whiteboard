@@ -1,13 +1,13 @@
-
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Canvas } from './Canvas';
 import { Toolbar } from './Toolbar';
 import { AdminPanel } from './AdminPanel';
 import { useWhiteboardAuth } from '@/hooks/use-whiteboard-auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut, Loader2, ZoomIn, ZoomOut, Maximize, Hand } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function Whiteboard() {
   const { user, loading, isAdmin, logout } = useWhiteboardAuth();
@@ -15,6 +15,41 @@ export default function Whiteboard() {
   const [brushWidth, setBrushWidth] = useState(4);
   const [aiRefineEnabled, setAiRefineEnabled] = useState(false);
   
+  // Navigation State
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
+  const handleZoom = (delta: number) => {
+    setScale(prev => {
+      const next = prev * delta;
+      return Math.min(Math.max(next, 0.1), 5); // 10% to 500%
+    });
+  };
+
+  const resetView = () => {
+    setScale(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  const startPanning = (e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && e.altKey)) { // Middle click or Alt+Click
+      setIsPanning(true);
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const pan = (e: React.MouseEvent) => {
+    if (!isPanning) return;
+    const dx = e.clientX - lastMousePos.current.x;
+    const dy = e.clientY - lastMousePos.current.y;
+    setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const stopPanning = () => setIsPanning(false);
+
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -24,16 +59,30 @@ export default function Whiteboard() {
   }
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-background">
-      {/* Background Grid Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-        style={{ backgroundImage: 'radial-gradient(circle, #8B77FF 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
+    <div 
+      className={`relative h-screen w-full overflow-hidden bg-background ${isPanning ? 'cursor-grabbing' : ''}`}
+      onMouseDown={startPanning}
+      onMouseMove={pan}
+      onMouseUp={stopPanning}
+      onMouseLeave={stopPanning}
+    >
+      {/* Background Grid Pattern - Reacts to zoom and pan */}
+      <div 
+        className="absolute inset-0 opacity-[0.03] pointer-events-none transition-transform duration-75" 
+        style={{ 
+          backgroundImage: 'radial-gradient(circle, #8B77FF 1px, transparent 1px)', 
+          backgroundSize: `${40 * scale}px ${40 * scale}px`,
+          backgroundPosition: `${offset.x}px ${offset.y}px`
+        }}
+      >
       </div>
 
       <Canvas 
         brushColor={brushColor} 
         brushWidth={brushWidth} 
         aiRefineEnabled={aiRefineEnabled}
+        scale={scale}
+        offset={offset}
       />
 
       {/* Header / Auth */}
@@ -60,6 +109,51 @@ export default function Whiteboard() {
         />
         
         {isAdmin && <AdminPanel />}
+      </div>
+
+      {/* Zoom Controls */}
+      <div className="absolute bottom-6 right-6 z-50 flex items-center gap-2 p-1 glass-panel rounded-xl">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => handleZoom(0.8)} className="h-9 w-9">
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom Out</TooltipContent>
+          </Tooltip>
+
+          <div className="px-2 text-xs font-medium min-w-[3rem] text-center text-muted-foreground">
+            {Math.round(scale * 100)}%
+          </div>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => handleZoom(1.2)} className="h-9 w-9">
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Zoom In</TooltipContent>
+          </Tooltip>
+
+          <div className="w-px h-4 bg-white/10 mx-1" />
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={resetView} className="h-9 w-9">
+                <Maximize className="w-4 h-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Reset View</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      {/* Navigation Help */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden md:flex items-center gap-4 px-4 py-2 glass-panel rounded-full text-[10px] text-muted-foreground uppercase tracking-widest pointer-events-none">
+        <span className="flex items-center gap-1"><Hand className="w-3 h-3" /> Middle Click to Pan</span>
+        <span className="w-1 h-1 rounded-full bg-white/20" />
+        <span>Scroll to Zoom</span>
       </div>
 
       {/* Footer Info */}
