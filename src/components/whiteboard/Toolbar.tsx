@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from 'react';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Sparkles, Minus, Plus } from 'lucide-react';
+import { Sparkles, Minus, Plus, Hand, Pencil } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -26,6 +27,8 @@ interface ToolbarProps {
   setBrushWidth: (w: number) => void;
   aiRefineEnabled: boolean;
   setAiRefineEnabled: (v: boolean) => void;
+  isPanMode: boolean;
+  setIsPanMode: (v: boolean) => void;
 }
 
 export function Toolbar({
@@ -34,17 +37,55 @@ export function Toolbar({
   brushWidth,
   setBrushWidth,
   aiRefineEnabled,
-  setAiRefineEnabled
+  setAiRefineEnabled,
+  isPanMode,
+  setIsPanMode
 }: ToolbarProps) {
   return (
     <TooltipProvider>
       <Card className="glass-panel w-full md:w-16 p-2 flex flex-row md:flex-col items-center gap-3 md:gap-4 py-2 md:py-4 px-3 md:px-2 overflow-x-auto no-scrollbar">
+        {/* Pan/Draw Toggle */}
+        <div className="flex flex-row md:flex-col gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={!isPanMode ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setIsPanMode(false)}
+                className={`w-8 h-8 md:w-10 md:h-10 shrink-0 ${!isPanMode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <Pencil className="w-4 h-4 md:w-5 md:h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Draw Mode</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isPanMode ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setIsPanMode(true)}
+                className={`w-8 h-8 md:w-10 md:h-10 shrink-0 ${isPanMode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <Hand className="w-4 h-4 md:w-5 md:h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Pan Mode (Move Canvas)</TooltipContent>
+          </Tooltip>
+        </div>
+
+        <Separator className="bg-white/10 h-8 md:h-px w-px md:w-full" />
+
         {/* Colors */}
         <div className="flex flex-row md:flex-col gap-2">
           {COLORS.map((color) => (
             <button
               key={color}
-              onClick={() => setBrushColor(color)}
+              onClick={() => {
+                setBrushColor(color);
+                setIsPanMode(false);
+              }}
               className={`w-6 h-6 md:w-8 md:h-8 rounded-full border-2 transition-transform hover:scale-110 shrink-0 ${
                 brushColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60'
               }`}
@@ -61,7 +102,7 @@ export function Toolbar({
             <Button variant="ghost" size="icon" className="w-8 h-8 md:w-10 md:h-10 shrink-0">
               <div 
                 className="rounded-full bg-primary transition-all"
-                style={{ width: `${Math.max(4, brushWidth)}px`, height: `${Math.max(4, brushWidth)}px` }}
+                style={{ width: `${Math.max(4, brushWidth / 2)}px`, height: `${Math.max(4, brushWidth / 2)}px` }}
               />
             </Button>
           </PopoverTrigger>

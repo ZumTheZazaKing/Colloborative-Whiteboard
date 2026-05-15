@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -15,6 +16,7 @@ export default function Whiteboard() {
   const [brushColor, setBrushColor] = useState('#8B77FF');
   const [brushWidth, setBrushWidth] = useState(4);
   const [aiRefineEnabled, setAiRefineEnabled] = useState(false);
+  const [isPanMode, setIsPanMode] = useState(false);
   
   // Navigation State
   const [scale, setScale] = useState(1);
@@ -54,9 +56,10 @@ export default function Whiteboard() {
     return () => container.removeEventListener('wheel', handleWheel);
   }, [handleZoom]);
 
-  // Pan Logic
+  // Unified Pan Logic for Mouse and Touch
   const startPanning = (e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey)) { 
+    // Pan with middle click, Alt+Left click, or regular left click if isPanMode is active
+    if (e.button === 1 || (e.button === 0 && (e.altKey || isPanMode))) { 
       setIsPanning(true);
       lastMousePos.current = { x: e.clientX, y: e.clientY };
     }
@@ -72,7 +75,7 @@ export default function Whiteboard() {
 
   const stopPanning = () => setIsPanning(false);
 
-  // Pinch Zoom Logic
+  // Touch Handlers for Pinch Zoom and Single-Finger Pan
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
       const dist = Math.hypot(
@@ -80,6 +83,9 @@ export default function Whiteboard() {
         e.touches[0].pageY - e.touches[1].pageY
       );
       lastPinchDistance.current = dist;
+    } else if (e.touches.length === 1 && isPanMode) {
+      setIsPanning(true);
+      lastMousePos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
   };
 
@@ -92,11 +98,17 @@ export default function Whiteboard() {
       const delta = dist / lastPinchDistance.current;
       handleZoom(delta);
       lastPinchDistance.current = dist;
+    } else if (e.touches.length === 1 && isPanning && isPanMode) {
+      const dx = e.touches[0].clientX - lastMousePos.current.x;
+      const dy = e.touches[0].clientY - lastMousePos.current.y;
+      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      lastMousePos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     }
   };
 
   const handleTouchEnd = () => {
     lastPinchDistance.current = null;
+    setIsPanning(false);
   };
 
   if (loading) {
@@ -113,7 +125,7 @@ export default function Whiteboard() {
   return (
     <div 
       ref={containerRef}
-      className={`relative h-screen w-full overflow-hidden bg-background ${isPanning ? 'cursor-grabbing' : ''}`}
+      className={`relative h-screen w-full overflow-hidden bg-background ${isPanning || isPanMode ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
       onMouseDown={startPanning}
       onMouseMove={pan}
       onMouseUp={stopPanning}
@@ -141,6 +153,7 @@ export default function Whiteboard() {
         aiRefineEnabled={aiRefineEnabled}
         scale={scale}
         offset={offset}
+        isPanMode={isPanMode}
       />
 
       {/* Header / Auth */}
@@ -164,6 +177,8 @@ export default function Whiteboard() {
           setBrushWidth={setBrushWidth}
           aiRefineEnabled={aiRefineEnabled}
           setAiRefineEnabled={setAiRefineEnabled}
+          isPanMode={isPanMode}
+          setIsPanMode={setIsPanMode}
         />
         
         {isAdmin && <AdminPanel />}
@@ -216,7 +231,7 @@ export default function Whiteboard() {
 
       {/* Navigation Help */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden md:flex items-center gap-4 px-4 py-2 glass-panel rounded-full text-[10px] text-muted-foreground uppercase tracking-widest pointer-events-none">
-        <span className="flex items-center gap-1"><Hand className="w-3 h-3" /> Middle Click to Pan</span>
+        <span className="flex items-center gap-1"><Hand className="w-3 h-3" /> {isPanMode ? 'Drag to Pan' : 'Middle Click to Pan'}</span>
         <span className="w-1 h-1 rounded-full bg-white/20" />
         <span>Scroll to Zoom</span>
       </div>

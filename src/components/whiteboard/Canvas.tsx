@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useRef, useEffect, useState } from 'react';
@@ -24,9 +25,10 @@ interface CanvasProps {
   aiRefineEnabled: boolean;
   scale: number;
   offset: { x: number, y: number };
+  isPanMode: boolean;
 }
 
-export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset }: CanvasProps) {
+export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset, isPanMode }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
@@ -118,6 +120,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   };
 
   const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isPanMode) return;
     if ((e as React.MouseEvent).button === 1) return;
     if ('touches' in e && e.touches.length > 1) return;
     
@@ -141,7 +144,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   };
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDrawing) return;
+    if (!isDrawing || isPanMode) return;
     if ('touches' in e && e.touches.length > 1) {
       endDrawing(); 
       return;
@@ -211,7 +214,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute inset-0 w-full h-full touch-none transition-opacity ${isLocked ? 'cursor-not-allowed opacity-90' : 'cursor-crosshair'}`}
+      className={`absolute inset-0 w-full h-full touch-none transition-opacity ${isPanMode ? 'pointer-events-none cursor-default' : (isLocked ? 'cursor-not-allowed opacity-90' : 'cursor-crosshair')}`}
       onMouseDown={startDrawing}
       onMouseMove={draw}
       onMouseUp={endDrawing}
