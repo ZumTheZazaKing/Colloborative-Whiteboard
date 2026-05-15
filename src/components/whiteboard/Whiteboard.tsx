@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
@@ -7,8 +6,9 @@ import { Toolbar } from './Toolbar';
 import { AdminPanel } from './AdminPanel';
 import { useWhiteboardAuth } from '@/hooks/use-whiteboard-auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, Loader2, ZoomIn, ZoomOut, Maximize, Hand } from 'lucide-react';
+import { LogOut, Loader2, ZoomIn, ZoomOut, Maximize, Hand, Lock } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Toaster } from '@/components/ui/toaster';
 
 export default function Whiteboard() {
   const { user, loading, isAdmin, logout } = useWhiteboardAuth();
@@ -106,6 +106,9 @@ export default function Whiteboard() {
     );
   }
 
+  const zoomPercent = Math.round(scale * 100);
+  const isLocked = zoomPercent !== 100;
+
   return (
     <div 
       ref={containerRef}
@@ -118,6 +121,8 @@ export default function Whiteboard() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      <Toaster />
+
       {/* Background Grid Pattern */}
       <div 
         className="absolute inset-0 opacity-[0.03] pointer-events-none" 
@@ -163,6 +168,13 @@ export default function Whiteboard() {
         {isAdmin && <AdminPanel />}
       </div>
 
+      {/* Locked Status Indicator */}
+      {isLocked && (
+        <div className="absolute top-20 left-6 z-50 flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-[10px] font-bold uppercase tracking-widest animate-pulse">
+          <Lock className="w-3 h-3" /> Drawing Locked: Reset Zoom to 100%
+        </div>
+      )}
+
       {/* Zoom Controls */}
       <div className="absolute bottom-6 right-6 z-50 flex items-center gap-2 p-1 glass-panel rounded-xl">
         <TooltipProvider>
@@ -175,8 +187,8 @@ export default function Whiteboard() {
             <TooltipContent>Zoom Out</TooltipContent>
           </Tooltip>
 
-          <div className="px-2 text-xs font-medium min-w-[3rem] text-center text-muted-foreground">
-            {Math.round(scale * 100)}%
+          <div className={`px-2 text-xs font-bold min-w-[3.5rem] text-center transition-colors ${isLocked ? 'text-destructive' : 'text-primary'}`}>
+            {zoomPercent}%
           </div>
 
           <Tooltip>
@@ -192,11 +204,11 @@ export default function Whiteboard() {
 
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={resetView} className="h-9 w-9">
+              <Button variant="ghost" size="icon" onClick={resetView} className={`h-9 w-9 ${isLocked ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Maximize className="w-4 h-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Reset View</TooltipContent>
+            <TooltipContent>Reset View (100%)</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>

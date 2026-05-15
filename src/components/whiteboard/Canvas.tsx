@@ -1,10 +1,10 @@
-
 "use client"
 
 import React, { useRef, useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { refineHandDrawnStrokes } from '@/ai/flows/refine-hand-drawn-strokes-flow';
+import { useToast } from '@/hooks/use-toast';
 
 interface Point {
   x: number;
@@ -31,6 +31,7 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [strokes, setStrokes] = useState<Stroke[]>([]);
+  const { toast } = useToast();
 
   // Sync with Firestore
   useEffect(() => {
@@ -120,6 +121,17 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     if ((e as React.MouseEvent).button === 1) return;
     if ('touches' in e && e.touches.length > 1) return;
     
+    // Check zoom level restriction
+    const currentZoomPercent = Math.round(scale * 100);
+    if (currentZoomPercent !== 100) {
+      toast({
+        variant: "destructive",
+        title: "Drawing Locked",
+        description: `Drawing is only allowed at 100% zoom. Current zoom: ${currentZoomPercent}%. Please reset zoom to start drawing.`,
+      });
+      return;
+    }
+    
     setIsDrawing(true);
     const pos = getPos(e);
     setCurrentPoints([pos]);
@@ -191,10 +203,12 @@ export function Canvas({ brushColor, brushWidth, aiRefineEnabled, scale, offset 
     };
   };
 
+  const isLocked = Math.round(scale * 100) !== 100;
+
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full cursor-crosshair touch-none"
+      className={`absolute inset-0 w-full h-full touch-none transition-opacity ${isLocked ? 'cursor-not-allowed opacity-90' : 'cursor-crosshair'}`}
       onMouseDown={startDrawing}
       onMouseMove={draw}
       onMouseUp={endDrawing}
