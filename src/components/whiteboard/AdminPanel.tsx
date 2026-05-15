@@ -9,14 +9,73 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trash2, Eraser, Settings2, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Stroke {
+  id: string;
+  points: Point[];
+  color: string;
+  width: number;
+  createdAt?: any;
+}
+
+const StrokePreview = ({ points, color, width }: { points: Point[], color: string, width: number }) => {
+  if (!points || points.length < 2) {
+    return (
+      <div className="w-10 h-10 rounded border border-white/10 bg-black/40 flex items-center justify-center">
+        <div className="w-1 h-1 rounded-full" style={{ backgroundColor: color }} />
+      </div>
+    );
+  }
+
+  const minX = Math.min(...points.map(p => p.x));
+  const maxX = Math.max(...points.map(p => p.x));
+  const minY = Math.min(...points.map(p => p.y));
+  const maxY = Math.max(...points.map(p => p.y));
+  
+  const strokeWidth = width;
+  const padding = Math.max(strokeWidth * 2, 10);
+  const rawW = maxX - minX;
+  const rawH = maxY - minY;
+  
+  const w = rawW + padding;
+  const h = rawH + padding;
+  
+  const pathData = points.reduce((acc, p, i) => {
+    const x = p.x - minX + padding/2;
+    const y = p.y - minY + padding/2;
+    return acc + (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+  }, "");
+
+  return (
+    <svg 
+      viewBox={`0 0 ${w} ${h}`} 
+      className="w-10 h-10 rounded border border-white/10 bg-black/40"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <path 
+        d={pathData} 
+        stroke={color} 
+        strokeWidth={strokeWidth} 
+        fill="none" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+      />
+    </svg>
+  );
+};
+
 export function AdminPanel() {
-  const [strokes, setStrokes] = useState<any[]>([]);
+  const [strokes, setStrokes] = useState<Stroke[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'drawings'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setStrokes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+      setStrokes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Stroke)));
     });
     return () => unsubscribe();
   }, []);
@@ -84,7 +143,7 @@ export function AdminPanel() {
                   strokes.map((stroke) => (
                     <div key={stroke.id} className="group flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5 hover:border-white/10 transition-colors">
                       <div className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full border border-white/10" style={{ backgroundColor: stroke.color }} />
+                        <StrokePreview points={stroke.points} color={stroke.color} width={stroke.width} />
                         <div className="text-xs">
                           <p className="font-medium text-foreground">Stroke {stroke.id.slice(0, 5)}</p>
                           <p className="text-muted-foreground">Width: {stroke.width}px • {stroke.points?.length || 0} pts</p>
