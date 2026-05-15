@@ -113,7 +113,7 @@ export default function Whiteboard() {
 
   if (loading) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
+      <div className="h-dvh w-full flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
@@ -125,7 +125,7 @@ export default function Whiteboard() {
   return (
     <div 
       ref={containerRef}
-      className={`relative h-screen w-full overflow-hidden bg-background ${isPanning || isPanMode ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
+      className={`relative h-dvh w-full overflow-hidden bg-background ${isPanning || isPanMode ? 'cursor-grab' : ''} ${isPanning ? 'cursor-grabbing' : ''}`}
       onMouseDown={startPanning}
       onMouseMove={pan}
       onMouseUp={stopPanning}
@@ -168,8 +168,8 @@ export default function Whiteboard() {
         )}
       </div>
 
-      {/* Floating Tools Sidebar */}
-      <div className="absolute left-4 right-4 bottom-4 md:left-6 md:right-auto md:top-1/2 md:-translate-y-1/2 md:bottom-auto z-50 flex flex-row md:flex-col gap-4 md:gap-6 items-end md:items-center">
+      {/* Floating Tools Sidebar - Lifted more on mobile to avoid browser chrome */}
+      <div className="absolute left-4 right-4 bottom-8 md:left-6 md:right-auto md:top-1/2 md:-translate-y-1/2 md:bottom-auto z-50 flex flex-row md:flex-col gap-4 md:gap-6 items-end md:items-center">
         <Toolbar 
           brushColor={brushColor} 
           setBrushColor={setBrushColor} 
@@ -191,8 +191,8 @@ export default function Whiteboard() {
         </div>
       )}
 
-      {/* Zoom Controls */}
-      <div className="absolute bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex items-center gap-1 md:gap-2 p-1 glass-panel rounded-xl">
+      {/* Zoom Controls - Lifted more on mobile to avoid overlap */}
+      <div className="absolute bottom-24 md:bottom-6 right-4 md:right-6 z-50 flex items-center gap-1 md:gap-2 p-1 glass-panel rounded-xl">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -229,7 +229,7 @@ export default function Whiteboard() {
         </TooltipProvider>
       </div>
 
-      {/* Navigation Help */}
+      {/* Navigation Help - Hidden on very small screens or adjusted for mobile visibility */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 hidden md:flex items-center gap-4 px-4 py-2 glass-panel rounded-full text-[10px] text-muted-foreground uppercase tracking-widest pointer-events-none">
         <span className="flex items-center gap-1"><Hand className="w-3 h-3" /> {isPanMode ? 'Drag to Pan' : 'Middle Click to Pan'}</span>
         <span className="w-1 h-1 rounded-full bg-white/20" />
