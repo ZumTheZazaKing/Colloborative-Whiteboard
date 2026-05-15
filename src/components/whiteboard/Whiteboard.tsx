@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -6,28 +7,14 @@ import { Toolbar } from './Toolbar';
 import { AdminPanel } from './AdminPanel';
 import { useWhiteboardAuth } from '@/hooks/use-whiteboard-auth';
 import { Button } from '@/components/ui/button';
-import { LogIn, LogOut, Loader2, KeyRound } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
+import { LogOut, Loader2 } from 'lucide-react';
 
 export default function Whiteboard() {
-  const { user, loading, isAdmin, login, logout } = useWhiteboardAuth();
-  const { toast } = useToast();
+  const { user, loading, isAdmin, logout } = useWhiteboardAuth();
   const [brushColor, setBrushColor] = useState('#8B77FF');
   const [brushWidth, setBrushWidth] = useState(4);
   const [aiRefineEnabled, setAiRefineEnabled] = useState(false);
   
-  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
-  const [passphrase, setPassphrase] = useState('');
-
   if (loading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-background">
@@ -35,25 +22,6 @@ export default function Whiteboard() {
       </div>
     );
   }
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const success = await login(passphrase);
-    if (success) {
-      setIsLoginDialogOpen(false);
-      setPassphrase('');
-      toast({
-        title: "Access Granted",
-        description: "You now have administrative privileges.",
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Invalid Passphrase",
-        description: "The secret code you entered is incorrect.",
-      });
-    }
-  };
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
@@ -70,48 +38,15 @@ export default function Whiteboard() {
 
       {/* Header / Auth */}
       <div className="absolute top-6 right-6 z-50 flex gap-3">
-        {isAdmin ? (
+        {isAdmin && (
           <div className="flex items-center gap-3">
              <span className="text-sm font-medium text-muted-foreground hidden sm:block">Admin Active: {user?.displayName}</span>
              <Button variant="outline" size="sm" onClick={logout} className="glass-panel text-xs gap-2">
                <LogOut className="w-3 h-3" /> Logout
              </Button>
           </div>
-        ) : (
-          <Button variant="default" size="sm" onClick={() => setIsLoginDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs gap-2">
-            <LogIn className="w-3 h-3" /> Admin Login
-          </Button>
         )}
       </div>
-
-      {/* Login Dialog */}
-      <Dialog open={isLoginDialogOpen} onOpenChange={setIsLoginDialogOpen}>
-        <DialogContent className="glass-panel border-white/10 sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-secondary" /> Administrative Access
-            </DialogTitle>
-            <DialogDescription>
-              Enter the secret passphrase to unlock the board moderator tools.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleLoginSubmit}>
-            <div className="grid gap-4 py-4">
-              <Input
-                type="password"
-                placeholder="Enter passphrase..."
-                value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                className="bg-white/5 border-white/10 focus:ring-primary"
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button type="submit" className="w-full">Unlock Panel</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Floating Tools Sidebar */}
       <div className="absolute left-6 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-6">
