@@ -1,36 +1,47 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import { auth, googleProvider } from '@/lib/firebase';
-import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
+
+// "admin123" encoded in Base64
+const ENCODED_PASSPHRASE = "YWRtaW4xMjM=";
 
 export function useWhiteboardAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    const saved = localStorage.getItem('wb_admin_session');
+    if (saved === 'true') {
+      setIsAdmin(true);
+    }
+    setLoading(false);
   }, []);
 
-  const login = async () => {
+  const login = async (passphrase: string) => {
+    // Decode the stored secret to compare with user input
     try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login failed", error);
+      const decodedSecret = atob(ENCODED_PASSPHRASE);
+      if (passphrase === decodedSecret) {
+        setIsAdmin(true);
+        localStorage.setItem('wb_admin_session', 'true');
+        return true;
+      }
+    } catch (e) {
+      console.error("Decoding error", e);
     }
+    return false;
   };
 
   const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Logout failed", error);
-    }
+    setIsAdmin(false);
+    localStorage.removeItem('wb_admin_session');
   };
 
-  return { user, loading, isAdmin: !!user, login, logout };
+  return { 
+    user: isAdmin ? { email: 'admin@whiteboard.local', displayName: 'Board Admin' } : null, 
+    loading, 
+    isAdmin, 
+    login, 
+    logout 
+  };
 }
