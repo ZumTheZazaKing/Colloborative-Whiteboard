@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Sparkles, Minus, Plus, Hand, Pencil } from 'lucide-react';
+import { Sparkles, Minus, Plus, Hand, Pencil, Eraser } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -19,6 +19,9 @@ const COLORS = [
   '#FFD977', // Yellow
   '#FFFFFF', // White
 ];
+
+// Hex equivalent of HSL(250, 20%, 5%) from globals.css
+const ERASER_COLOR = '#0b0a0f';
 
 interface ToolbarProps {
   brushColor: string;
@@ -41,23 +44,46 @@ export function Toolbar({
   isPanMode,
   setIsPanMode
 }: ToolbarProps) {
+  const isEraserActive = brushColor === ERASER_COLOR && !isPanMode;
+  const isPencilActive = !isPanMode && brushColor !== ERASER_COLOR;
+
   return (
     <TooltipProvider>
       <Card className="glass-panel w-full md:w-16 p-2 flex flex-row md:flex-col items-center gap-3 md:gap-4 py-2 md:py-4 px-3 md:px-2 overflow-x-auto no-scrollbar">
-        {/* Pan/Draw Toggle */}
+        {/* Pan/Draw/Erase Toggle */}
         <div className="flex flex-row md:flex-col gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                variant={!isPanMode ? "default" : "ghost"}
+                variant={isPencilActive ? "default" : "ghost"}
                 size="icon"
-                onClick={() => setIsPanMode(false)}
-                className={`w-8 h-8 md:w-10 md:h-10 shrink-0 ${!isPanMode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+                onClick={() => {
+                  setIsPanMode(false);
+                  if (brushColor === ERASER_COLOR) setBrushColor(COLORS[0]);
+                }}
+                className={`w-8 h-8 md:w-10 md:h-10 shrink-0 ${isPencilActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
               >
                 <Pencil className="w-4 h-4 md:w-5 md:h-5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">Draw Mode</TooltipContent>
+            <TooltipContent side="right">Pencil Tool</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isEraserActive ? "default" : "ghost"}
+                size="icon"
+                onClick={() => {
+                  setIsPanMode(false);
+                  setBrushColor(ERASER_COLOR);
+                }}
+                className={`w-8 h-8 md:w-10 md:h-10 shrink-0 ${isEraserActive ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}
+              >
+                <Eraser className="w-4 h-4 md:w-5 md:h-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Eraser Tool</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -87,7 +113,7 @@ export function Toolbar({
                 setIsPanMode(false);
               }}
               className={`w-6 h-6 md:w-8 md:h-8 rounded-full border-2 transition-transform hover:scale-110 shrink-0 ${
-                brushColor === color ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60'
+                (brushColor === color && !isPanMode) ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60'
               }`}
               style={{ backgroundColor: color }}
             />
